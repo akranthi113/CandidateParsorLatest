@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Candidate Parser</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f4ff;
+      --surface: #ffffff;
+      --surface2: #f7f9ff;
+      --border: #dde3f5;
+      --accent: #4361ee;
+      --accent-light: #eef1fd;
+      --accent2: #0a9396;
+      --accent2-light: #e0f4f4;
+      --text: #1a1f36;
+      --text-mid: #4a5175;
+      --muted: #8f97b8;
+      --danger: #e63946;
+      --warn: #f4a261;
+      --radius: 16px;
+      --shadow: 0 2px 12px rgba(67,97,238,0.08), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-hover: 0 8px 28px rgba(67,97,238,0.14), 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(67,97,238,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(10,147,150,0.06) 0%, transparent 60%);
+      background-attachment: fixed;
+      color: var(--text);
+      min-height: 100vh;
+      padding: 40px 20px 60px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      margin-bottom: 44px;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-light);
+      color: var(--accent);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 14px;
+    }
+
+    header h1 {
+      font-family: 'Lora', serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    header h1 span {
+      color: var(--accent);
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 1180px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.25s;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+
+    .card-icon.blue { background: var(--accent-light); }
+    .card-icon.teal { background: var(--accent2-light); }
+
+    .card h2 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+
+    /* ── TEXTAREA ── */
+    textarea {
+      width: 100%;
+      height: 490px;
+      padding: 16px 18px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      resize: vertical;
+      font-size: 13.5px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.75;
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
+    }
+
+    textarea::placeholder { color: var(--muted); font-style: italic; }
+
+    /* ── BUTTONS ── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      padding: 12px 22px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13.5px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      transition: all 0.18s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    .parse-btn {
+      background: var(--accent);
+      color: #fff;
+      flex: 1;
+      box-shadow: 0 4px 14px rgba(67,97,238,0.3);
+    }
+
+    .parse-btn:hover {
+      background: #3451d1;
+      box-shadow: 0 6px 20px rgba(67,97,238,0.4);
+      transform: translateY(-1px);
+    }
+
+    .clear-btn {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      padding: 12px 18px;
+    }
+
+    .clear-btn:hover {
+      background: #fff0f0;
+      border-color: #f0b4b4;
+      color: var(--danger);
+    }
+
+    .copy-btn {
+      width: 100%;
+      background: var(--accent2);
+      color: #fff;
+      margin-top: 16px;
+      box-shadow: 0 4px 14px rgba(10,147,150,0.25);
+    }
+
+    .copy-btn:hover {
+      background: #087a7d;
+      box-shadow: 0 6px 20px rgba(10,147,150,0.35);
+      transform: translateY(-1px);
+    }
+
+    /* ── OUTPUT BOX ── */
+    .output-box {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      min-height: 490px;
+      line-height: 1.8;
+      overflow-y: auto;
+      color: var(--text);
+    }
+
+    .output-box .placeholder {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      min-height: 420px;
+      gap: 10px;
+    }
+
+    .placeholder-icon {
+      font-size: 40px;
+      opacity: 0.35;
+    }
+
+    /* ── PROFILE OUTPUT ── */
+    .profile-title {
+      font-family: 'Lora', serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.2px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1.5px solid var(--border);
+      margin: 4px 0 16px;
+    }
+
+    .field-row {
+      display: block;
+      border-bottom: 1px solid #f0f2fa;
+      padding: 9px 4px;
+      transition: background 0.15s;
+      border-radius: 6px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .field-row:last-child { border-bottom: none; }
+
+    .field-row:hover {
+      background: rgba(67,97,238,0.04);
+    }
+
+    .field-label {
+      color: var(--text-mid);
+      font-weight: 600;
+      font-size: 13.5px;
+    }
+
+    .field-value {
+      color: var(--text);
+      font-weight: 500;
+      font-size: 13.5px;
+    }
+
+    .field-value.missing {
+      color: var(--muted);
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    /* ── PARSE LOG ── */
+    #parseLog {
+      margin-top: 14px;
+      font-size: 11.5px;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      max-height: 120px;
+      overflow-y: auto;
+      display: none;
+      line-height: 1.7;
+    }
+
+    #parseLog.visible { display: block; }
+    #parseLog strong { color: var(--text-mid); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; }
+    #parseLog .log-warn { color: var(--warn); }
+    #parseLog .log-ok { color: var(--accent2); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .field-row {
+      animation: fadeUp 0.25s ease both;
+    }
+
+    /* ── API KEY BAR ── */
+    .api-bar {
+      max-width: 1180px;
+      margin: 0 auto 20px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow);
+      flex-wrap: wrap;
+    }
+
+    .api-bar label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-mid);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .api-bar input {
+      flex: 1;
+      min-width: 200px;
+      padding: 9px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text);
+      background: var(--surface2);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .api-bar input:focus { border-color: var(--accent); }
+
+    .api-bar .api-save-btn {
+      padding: 9px 18px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s;
+    }
+
+    .api-bar .api-save-btn:hover { background: #3451d1; }
+
+    .api-status {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .api-status.set   { background: #e0f4f4; color: var(--accent2); }
+    .api-status.unset { background: #fff0f0; color: var(--danger); }
+
+    /* ── AI PARSE BUTTON ── */
+    .ai-btn {
+      background: linear-gradient(135deg, #7c3aed, #4361ee);
+      color: #fff;
+      flex: 1;
+      box-shadow: 0 4px 14px rgba(124,58,237,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-btn:hover {
+      background: linear-gradient(135deg, #6d28d9, #3451d1);
+      box-shadow: 0 6px 20px rgba(124,58,237,0.4);
+      transform: translateY(-1px);
+    }
+
+    .ai-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .ai-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media(max-width: 860px) {
+      .container { grid-template-columns: 1fr; }
+      body { padding: 24px 14px 40px; }
+      .api-bar { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">✦ HR Tool</div>
+  <h1>Candidate <span>WhatsApp</span> Parser</h1>
+  <p>Paste raw candidate data — get a clean, structured profile instantly.</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon blue">📋</div>
+      <h2>Paste Candidate Data</h2>
+    </div>
+    <textarea id="inputText" placeholder="Paste candidate details here...&#10;&#10;Example:&#10;Rajesh Kumar&#10;Suresh Kumar&#10;9876543210&#10;rajesh@gmail.com&#10;15/08/1998&#10;Male&#10;Single&#10;123456789012&#10;MBA&#10;Hyderabad, Telangana&#10;English, Hindi&#10;2 years experience in sales&#10;Immediate joining"></textarea>
+    <div class="btn-row">
+      <button class="parse-btn" onclick="parseData()">⚡ Parse</button>
+      <button class="ai-btn" id="aiParseBtn" onclick="aiParseData()" title="Uses Claude AI for smarter parsing">✨ AI Parse</button>
+      <button class="clear-btn" onclick="clearAll()">✕</button>
+    </div>
+    <div id="parseLog"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon teal">👤</div>
+      <h2>Formatted Candidate Profile</h2>
+    </div>
+    <div id="parsedOutput" class="output-box">
+      <div class="placeholder">
+        <div class="placeholder-icon">📄</div>
+        <div>Paste candidate data on the left<br>and click <strong>Parse Candidate</strong></div>
+      </div>
+    </div>
+    <button class="copy-btn" onclick="copyOutput()">📋 Copy Profile</button>
+  </div>
+
+</div>
+
+<script>
+
+/* ── Helpers ─────────────────────────────────────────── */
+
+function properCase(str) {
+  return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function clean(str) {
+  // Remove asterisks used as WhatsApp formatting (*word*)
+  str = str.replace(/\*/g, "");
+  // Strip leading label — anything before a colon that looks like a label
+  // e.g. "Father's Name:", "Residential address with pincode :", "Spoken Languages:"
+  // Guard: don't strip if colon is inside an email or time value
+  if (/^[^:@\d]{2,60}:\s*/.test(str)) {
+    str = str.replace(/^[^:@\d]{2,60}:\s*/, "");
+  }
+  return str.trim();
+}
+
+function isSkipLine(str) {
+  // Ignore question lines, instructions, resume prompts
+  return /attach|resume|\.pdf|\.doc|upload|kindly|please note|fill in|how often|will you be able/i.test(str);
+}
+
+/* ── Main Parser ─────────────────────────────────────── */
+
+function parseData() {
+  const rawText = document.getElementById("inputText").value.trim();
+  const log = [];
+
+  // ── Guard: detect if user pasted already-parsed output ──
+  if (rawText.startsWith("CANDIDATE PROFILE") && /Full Name:|Phone Number:|Date of Birth:/.test(rawText)) {
+    const box = document.getElementById("parsedOutput");
+    box.innerHTML = '<div class="placeholder"><div class="placeholder-icon">&#9888;&#65039;</div><div style="color:var(--text-mid);"><strong style="color:var(--text);">Oops! Already-parsed data detected.</strong><br><br>It looks like you pasted the formatted profile instead of the original WhatsApp message.<br><br>Please paste the <em>raw candidate data</em> and try again.</div></div>';
+    return;
+  }
+
+  const candidate = {
+    name: "",
+    fatherName: "",
+    phone: "",
+    altPhone: "",
+    email: "",
+    dob: "",
+    gender: "",
+    marital: "",
+    aadhar: "",
+    qualification: [],
+    address: [],
+    languages: "",
+    experience: "",
+    joining: ""
+  };
+
+  // Split on newlines; also handle comma/semicolon separated lines
+  const rawLines = rawText.split("\n");
+  const lines = [];
+  rawLines.forEach(line => {
+    line = line.trim();
+    if (line) lines.push(line);
+  });
+
+  lines.forEach(rawLine => {
+
+    // Skip instruction/question/resume-attach lines before cleaning
+    if (isSkipLine(rawLine)) {
+      log.push({ type: "warn", msg: `Skipped → ${rawLine.trim()}` });
+      return;
+    }
+
+    // ── FATHER NAME via label BEFORE stripping ──
+    // Catches: "Father's Name: X", "Father Name: X", "S/O: X", "D/O: X", "W/O: X", "C/O: X"
+    const fatherLabelMatch = rawLine.match(/^(?:father['\s]*s?\s*name|f\/name|s\/o|d\/o|w\/o|c\/o)\s*[:\-]\s*(.+)/i);
+    if (fatherLabelMatch) {
+      const val = fatherLabelMatch[1].replace(/\*/g, "").trim();
+      if (val) {
+        candidate.fatherName = properCase(val);
+        log.push({ type: "ok", msg: `Father Name (label) → ${candidate.fatherName}` });
+        return;
+      }
+    }
+
+    // ── NAME via label BEFORE stripping ──
+    const nameLabelMatch = rawLine.match(/^(?:name|full\s*name|candidate\s*name)\s*[:\-]\s*(.+)/i);
+    if (nameLabelMatch) {
+      const val = nameLabelMatch[1].replace(/\*/g, "").trim();
+      if (val) {
+        candidate.name = properCase(val);
+        log.push({ type: "ok", msg: `Name (label) → ${candidate.name}` });
+        return;
+      }
+    }
+
+    // Strip label prefixes and asterisks
+    const line = clean(rawLine);
+    if (!line) return; // skip if nothing left after stripping label
+    const lower = line.toLowerCase();
+
+    // ── EMAIL ──
+    if (/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i.test(line)) {
+      const match = line.match(/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i);
+      candidate.email = match[0].toLowerCase();
+      log.push({ type: "ok", msg: `Email → ${candidate.email}` });
+      return;
+    }
+
+    // ── PHONE — handles +91, spaces, dashes, brackets ──
+    const phoneStripped = line.replace(/[\s\-().+]/g, "");
+    // Strictly 10 digits (or 12 with 91 prefix) — must not be 12 standalone digits (aadhar)
+    if (/^(91)?[6-9]\d{9}$/.test(phoneStripped) && phoneStripped.replace(/^91/,"").length === 10) {
+      const phone10 = phoneStripped.slice(-10);
+      if (!candidate.phone) {
+        candidate.phone = phone10;
+        log.push({ type: "ok", msg: `Phone → ${phone10}` });
+      } else if (!candidate.altPhone && phone10 !== candidate.phone) {
+        candidate.altPhone = phone10;
+        log.push({ type: "ok", msg: `Alt Phone → ${phone10}` });
+      }
+      return;
+    }
+
+    // ── AADHAR — 12 digits, optionally with spaces (xxxx xxxx xxxx) ──
+    const aadharStripped = line.replace(/[\s\-]/g, "");
+    if (/^\d{12}$/.test(aadharStripped)) {
+      candidate.aadhar = aadharStripped;
+      log.push({ type: "ok", msg: `Aadhar → ${aadharStripped}` });
+      return;
+    }
+
+    // ── DOB — dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy, d/m/yyyy ──
+    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(line)) {
+      candidate.dob = line.replace(/[-\.]/g, "/");
+      log.push({ type: "ok", msg: `DOB → ${candidate.dob}` });
+      return;
+    }
+
+    // ── GENDER ──
+    if (/^(male|female)$/i.test(line)) {
+      candidate.gender = properCase(line);
+      log.push({ type: "ok", msg: `Gender → ${candidate.gender}` });
+      return;
+    }
+
+    // ── MARITAL STATUS ──
+    if (/^(single|married|unmarried|divorced|widowed)$/i.test(line)) {
+      candidate.marital = properCase(line);
+      log.push({ type: "ok", msg: `Marital → ${candidate.marital}` });
+      return;
+    }
+
+    // ── JOINING ──
+    if (/immediate|as soon|asap|join|notice period|available|ready to join|get the job/i.test(lower)) {
+      candidate.joining = properCase(line);
+      log.push({ type: "ok", msg: `Joining → ${candidate.joining}` });
+      return;
+    }
+
+    // ── EXPERIENCE ──
+    if (
+      /\d+\s*(year|yr|month|mon)|\bfresher\b|no experience|experienced|experience/i.test(lower) ||
+      /telecaller|bpo|sales executive|hr executive|recruiter|developer|engineer|analyst|manager|intern/i.test(lower)
+    ) {
+      if (!candidate.experience) {
+        candidate.experience = properCase(line);
+        log.push({ type: "ok", msg: `Experience → ${candidate.experience}` });
+      }
+      return;
+    }
+
+    // ── QUALIFICATION ──
+    // Detects degree abbreviations AND full degree names
+    const qualPatterns = [
+      /\b(mba|pgdm|mca|msc|mtech|me\b|ma\b|mcom|mph|mphil|phd|doctorate)\b/i,
+      /\b(btech|be\b|bsc|bca|bba|bcom|ba\b|bfa|bed|bpharm|llb|mbbs)\b/i,
+      /\b(inter|intermediate|12th|10th|ssc|hsc|plus two|\+2|diploma|iti)\b/i,
+      /\b(bachelor|master|degree|graduate|post.?graduate|engineering|science|commerce|arts)\b/i,
+    ];
+    if (qualPatterns.some(p => p.test(line))) {
+      candidate.qualification.push(properCase(line));
+      log.push({ type: "ok", msg: `Qualification → ${properCase(line)}` });
+      return;
+    }
+
+    // ── LANGUAGES ──
+    const langWords = /\b(english|hindi|urdu|telugu|tamil|kannada|malayalam|marathi|bengali|gujarati|punjabi|odia)\b/i;
+    if (langWords.test(line)) {
+      candidate.languages = candidate.languages
+        ? candidate.languages + ", " + line
+        : properCase(line);
+      log.push({ type: "ok", msg: `Languages → ${line}` });
+      return;
+    }
+
+    // ── ADDRESS SIGNALS ──
+    // Lines with commas, PIN codes, city/state keywords, or "H.No / Flat / Plot / Door"
+    const addressPatterns = [
+      /\b\d{6}\b/,                       // PIN code
+      /\b(hyderabad|bangalore|chennai|mumbai|delhi|pune|kolkata|ahmedabad|jaipur|lucknow|noida|gurugram|gurgaon|vizag|visakhapatnam|warangal|karimnagar|nizamabad)\b/i,
+      /\b(telangana|andhra|maharashtra|karnataka|tamilnadu|kerala|gujarat|rajasthan|up|mp|bihar|odisha|wb)\b/i,
+      /\b(h\.?no|flat|plot|door|street|road|nagar|colony|district|mandal|village|city|state|address|area|sector|phase|block|west|east|north|south|goregaon|andheri|borivali|thane|bandra|kurla|dadar|malad|kandivali|vasai|virar|mira|bhayander|ulhasnagar|dombivli|kalyan|badlapur|panvel|vashi|nerul|kharghar|taloja|mhada|sion|matunga|ghatkopar|mulund|nahur|bhandup|vikhroli|kanjurmarg|powai|chembur|trombay|mankhurd|govandi|kurla|chunabhatti|sion|dharavi|wadala|chembur|chunabhatti|tilak nagar|ghatkopar|vikhroli|kanjurmarg|powai|bhandup|mulund|nahur|bhandup|vikhroli)\b/i,
+    ];
+    if (addressPatterns.some(p => p.test(line)) || (line.includes(",") && line.length > 10 && !line.includes("@"))) {
+      candidate.address.push(properCase(line));
+      log.push({ type: "ok", msg: `Address → ${properCase(line)}` });
+      return;
+    }
+
+    // ── NAME / FATHER'S NAME ──
+    // Only accept lines that look like a proper name: letters + spaces only, 2–5 words, min 3 chars
+    const isNameLike = /^[a-zA-Z\s\.]+$/.test(line) && line.length >= 3 && line.split(/\s+/).length <= 5;
+
+    if (isNameLike) {
+      if (!candidate.name) {
+        candidate.name = properCase(line);
+        log.push({ type: "ok", msg: `Name (position) → ${candidate.name} ⚠ use "Name:" label for accuracy` });
+      } else if (!candidate.fatherName) {
+        candidate.fatherName = properCase(line);
+        log.push({ type: "ok", msg: `Father Name (position) → ${candidate.fatherName} ⚠ use "Father's Name:" label for accuracy` });
+      } else {
+        candidate.address.push(properCase(line));
+        log.push({ type: "warn", msg: `Uncategorized → address: ${line}` });
+      }
+      return;
+    }
+
+    // ── CATCH-ALL → address ──
+    candidate.address.push(properCase(line));
+    log.push({ type: "warn", msg: `Catch-all → address: ${line}` });
+
+  });
+
+  // ── Render output ──
+  const fields = [
+    ["Full Name",            candidate.name],
+    ["Father's Name",        candidate.fatherName],
+    ["Phone Number",         candidate.phone],
+    ["Alternative Number",   candidate.altPhone],
+    ["Email ID",             candidate.email],
+    ["Date of Birth",        candidate.dob],
+    ["Gender",               candidate.gender],
+    ["Marital Status",       candidate.marital],
+    ["Aadhar Number",        candidate.aadhar],
+    ["Highest Qualification",candidate.qualification.join(" | ")],
+    ["Residential Address",  candidate.address.join(", ")],
+    ["Languages Known",      candidate.languages],
+    ["Experience",           candidate.experience],
+    ["Joining Availability", candidate.joining],
+  ];
+
+  const box = document.getElementById("parsedOutput");
+  box.innerHTML = "";
+
+  fields.forEach(([label, value], i) => {
+    if (!value) return; // skip fields with no value entirely
+
+    const row = document.createElement("div");
+    row.className = "field-row";
+    row.style.animationDelay = (i * 35) + "ms";
+
+    const lbl = document.createElement("span");
+    lbl.className = "field-label";
+    lbl.textContent = label + ": ";
+
+    const val = document.createElement("span");
+    val.className = "field-value";
+    val.textContent = value;
+
+    row.appendChild(lbl);
+    row.appendChild(val);
+    box.appendChild(row);
+  });
+
+  // ── Parse log ──
+  const logEl = document.getElementById("parseLog");
+  logEl.innerHTML = "<strong>Parse Log:</strong><br>" +
+    log.map(l => `<span class="log-${l.type}">▸ ${l.msg}</span>`).join("<br>");
+  logEl.classList.add("visible");
+}
+
+/* ── Copy as plain text ─────────────────────────────── */
+function copyOutput() {
+  const rows = document.getElementById("parsedOutput").querySelectorAll(".field-row");
+
+  if (!rows.length) {
+    alert("Nothing to copy. Please parse a candidate first.");
+    return;
+  }
+
+  let lines = [];
+  rows.forEach(row => {
+    const lbl = row.querySelector(".field-label");
+    const val = row.querySelector(".field-value");
+    if (lbl && val && val.textContent.trim()) {
+      lines.push(lbl.textContent.trim() + " " + val.textContent.trim());
+    }
+  });
+
+  const text = lines.join("\n");
+  if (!text) {
+    alert("Nothing to copy.");
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showCopied())
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand("copy");
+    showCopied();
+  } catch (e) {
+    alert("Copy failed. Please select the text manually and copy.");
+  }
+  document.body.removeChild(ta);
+}
+
+function showCopied() {
+  const btn = document.querySelector(".copy-btn");
+  const original = btn.textContent;
+  btn.textContent = "✅ Copied!";
+  btn.style.background = "#059669";
+  setTimeout(() => {
+    btn.textContent = original;
+    btn.style.background = "";
+  }, 2000);
+}
+
+/* ── Clear ──────────────────────────────────────────── */
+function clearAll() {
+  document.getElementById("inputText").value = "";
+  const box = document.getElementById("parsedOutput");
+  box.innerHTML = '<div class="placeholder"><div class="placeholder-icon">📄</div><div>Paste candidate data on the left<br>and click <strong>Parse Candidate</strong></div></div>';
+  const logEl = document.getElementById("parseLog");
+  logEl.innerHTML = "";
+  logEl.classList.remove("visible");
+}
+
+/* ── API Key Management ──────────────────────────────── */
+
+/* ── AI Parse ────────────────────────────────────────── */
+async function aiParseData() {
+  const rawText = document.getElementById("inputText").value.trim();
+  if (!rawText) { alert("Please paste candidate data first."); return; }
+
+  // Show loading state
+  const btn = document.getElementById("aiParseBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ai-spinner"></span> Parsing...';
+
+  const box = document.getElementById("parsedOutput");
+  box.innerHTML = '<div class="placeholder"><div class="placeholder-icon" style="opacity:1;font-size:30px;">✨</div><div>AI is reading the candidate data...</div></div>';
+
+  try {
+    const response = await fetch("/api/ai-parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rawText })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "API error " + response.status);
+    }
+
+    const data = await response.json();
+    const candidate = data.candidate;
+    if (!candidate || typeof candidate !== "object") {
+      throw new Error("Invalid response from backend.");
+    }
+
+    // Render using same field renderer
+    const fields = [
+      ["Full Name",            candidate.name],
+      ["Father's Name",        candidate.fatherName],
+      ["Phone Number",         candidate.phone],
+      ["Alternative Number",   candidate.altPhone],
+      ["Email ID",             candidate.email],
+      ["Date of Birth",        candidate.dob],
+      ["Gender",               candidate.gender],
+      ["Marital Status",       candidate.marital],
+      ["Aadhar Number",        candidate.aadhar],
+      ["Highest Qualification",candidate.qualification],
+      ["Residential Address",  candidate.address],
+      ["Languages Known",      candidate.languages],
+      ["Experience",           candidate.experience],
+      ["Joining Availability", candidate.joining],
+    ];
+
+    box.innerHTML = "";
+
+    // AI badge
+    const badge = document.createElement("div");
+    badge.style.cssText = "display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#ede9fe,#dbeafe);color:#5b21b6;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:12px;letter-spacing:0.5px;";
+    badge.textContent = "✨ Parsed by Claude AI";
+    box.appendChild(badge);
+
+    fields.forEach(([label, value], i) => {
+      if (!value) return;
+      const row = document.createElement("div");
+      row.className = "field-row";
+      row.style.animationDelay = (i * 35) + "ms";
+      const lbl = document.createElement("span");
+      lbl.className = "field-label";
+      lbl.textContent = label + ": ";
+      const val = document.createElement("span");
+      val.className = "field-value";
+      val.textContent = value;
+      row.appendChild(lbl);
+      row.appendChild(val);
+      box.appendChild(row);
+    });
+
+    // Log
+    const logEl = document.getElementById("parseLog");
+    logEl.innerHTML = "<strong>AI Parse:</strong> Claude AI successfully extracted all fields.";
+    logEl.classList.add("visible");
+
+  } catch (err) {
+    box.innerHTML = '<div class="placeholder"><div class="placeholder-icon">❌</div><div><strong>AI Parse Failed</strong><br><br>' + err.message + '<br><br>Check your API key or try the regular ⚡ Parse button.</div></div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "✨ AI Parse";
+  }
+}
+
+</script>
+</body>
+</html>
