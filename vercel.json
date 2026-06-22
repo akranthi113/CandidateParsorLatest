@@ -1,9 +1,0 @@
-{
-  "version": 2,
-  "outputs": [
-    { "type": "static", "config": { "api/": "api" } }
-  ],
-  "functions": {
-    "api/**/*.js": { "runtime": "@vercel/node" }
-  }
-}
